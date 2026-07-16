@@ -1,0 +1,142 @@
+// Bharatfleet — Prisma schema (SQLite, file-based, zero external setup)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite has no enums; we store roles/statuses as strings and constrain in code.
+// See src/lib/constants.ts for the canonical value sets.
+
+model User {
+  id            String   @id @default(cuid())
+  role          String // LOAD_OWNER | TRUCK_OWNER
+  name          String
+  phone         String   @unique
+  verified      Boolean  @default(false)
+  businessName  String?
+  pan           String?
+  gst           String?
+  avgRating     Float    @default(0)
+  ratingCount   Int      @default(0)
+  tripsCompleted Int     @default(0)
+  memberSince   DateTime @default(now())
+  onTimePct     Int      @default(100)
+  fleetSize     Int?
+  truckTypes    String? // CSV, e.g. "open,container"
+  docs          String   @default("{}") // JSON blob of doc placeholders
+
+  loads         Load[]         @relation("PostedLoads")
+  bids          Bid[]
+  reviewsWritten Review[]      @relation("ReviewsFrom")
+  reviewsGot    Review[]       @relation("ReviewsTo")
+  notifications Notification[]
+
+  createdAt     DateTime @default(now())
+}
+
+model Load {
+  id                    String   @id @default(cuid())
+  posterId              String
+  poster                User     @relation("PostedLoads", fields: [posterId], references: [id])
+  pickupCity            String
+  dropCity              String
+  pickupLat             Float
+  pickupLng             Float
+  dropLat               Float
+  dropLng               Float
+  distanceKm            Int
+  pickupAt              DateTime
+  deliverBy             DateTime
+  weightTonnes          Float
+  materialType          String
+  truckType             String
+  numTrucks             Int      @default(1)
+  fragile               Boolean  @default(false)
+  loadingResponsibility String   @default("Load Owner") // who loads/unloads
+  notes                 String   @default("")
+  estMinPrice           Int
+  estMaxPrice           Int
+  status                String   @default("POSTED") // POSTED|BIDDING|ASSIGNED|IN_TRANSIT|DELIVERED|PAID|CLOSED
+  auctionClosesAt       DateTime
+  createdAt             DateTime @default(now())
+
+  bids Bid[]
+  trip Trip?
+  messages Message[]
+}
+
+model Bid {
+  id           String   @id @default(cuid())
+  loadId       String
+  load         Load     @relation(fields: [loadId], references: [id])
+  truckOwnerId String
+  truckOwner   User     @relation(fields: [truckOwnerId], references: [id])
+  amount       Int
+  status       String   @default("OPEN") // OPEN|WON|LOST
+  createdAt    DateTime @default(now())
+
+  wonTrip Trip? @relation("WinningBid")
+}
+
+model Trip {
+  id              String    @id @default(cuid())
+  loadId          String    @unique
+  load            Load      @relation(fields: [loadId], references: [id])
+  winningBidId    String    @unique
+  winningBid      Bid       @relation("WinningBid", fields: [winningBidId], references: [id])
+  status          String    @default("ASSIGNED") // ASSIGNED|IN_TRANSIT|DELIVERED|PAID|CLOSED
+  insuranceOn     Boolean   @default(false)
+  fuelCardOn      Boolean   @default(false)
+  cargoValue      Int       @default(0)
+  commissionPct   Float     @default(5)
+  commissionAmount Int      @default(0)
+  addonsTotal     Int       @default(0)
+  grandTotal      Int       @default(0)
+  progressPct     Int       @default(0)
+  startedAt       DateTime?
+  deliveredAt     DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  reviews Review[]
+}
+
+model Message {
+  id         String    @id @default(cuid())
+  threadId   String // deterministic: loadId + smaller/larger userId
+  loadId     String
+  load       Load      @relation(fields: [loadId], references: [id])
+  senderId   String
+  receiverId String
+  text       String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  tripId     String
+  trip       Trip     @relation(fields: [tripId], references: [id])
+  fromUserId String
+  fromUser   User     @relation("ReviewsFrom", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User     @relation("ReviewsTo", fields: [toUserId], references: [id])
+  stars      Int
+  text       String   @default("")
+  createdAt  DateTime @default(now())
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  type      String
+  text      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}

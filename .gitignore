@@ -1,0 +1,46 @@
+# dependencies
+node_modules
+/.pnp
+.pnp.js
+
+# next.js / build output
+.next
+/out
+/build
+next-env.d.ts
+
+# production
+/dist
+
+# environment variables (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# local SQLite database (never commit the DB)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+prisma/dev.db
+prisma/dev.db-journal
+
+# prisma generated client (regenerated on install)
+/node_modules/.prisma
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# misc / editor / OS
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.pem
+.turbo
+.vercel
+tsconfig.tsbuildinfo
