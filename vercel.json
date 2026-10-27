@@ -1,0 +1,3 @@
+{
+  "buildCommand": "export DATABASE_URL=file:./seed.db && npx prisma generate && npx prisma migrate deploy && npx tsx prisma/seed.ts && next build"
+}
